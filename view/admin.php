@@ -477,25 +477,77 @@ $uname = $_SESSION['user_name'];
                     <input type="text" id="user-search" style="max-width: 300px;" placeholder="Search for users...">
                     <button id="search-button" style="background-color: green;"><i class="fas fa-search"></i></button>
                 </div>
+                <div class="search-container" style="position: absolute; top: 5px; left: 250px;">
+                <form action="" method="get">
+                    <label for="sort">Sort By:</label>
+                        <select name="sort" id="sort">
+                            <option value="name_asc">Name ASC</option>
+                            <option value="name_desc">Name DESC</option>
+                        <!-- Add similar options for other columns if needed -->
+                    </select>
+                    <button class="btn btn-outline-success" type="submit">Sort</button>
+                </form>
+                </div>
                 <div class="card-container">
                     <?php
-                        $role = "user";
-                        $sql = "SELECT * FROM Users WHERE role='$role'";
+                    
+                        include '../process/connection.php';
+                        // Assuming $conn is your database connection
+
+                        // Check if the connection to the database is successful
+                        if (!$conn) {
+                            die("Connection failed: " . mysqli_connect_error());
+                        }
+
+                        // Sorting logic
+                        if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET['sort'])) {
+                            $sortOption = $_GET['sort'];
+                            
+                            // Define sorting order based on selected option
+                            switch ($sortOption) {
+                                case 'name_asc':
+                                    $orderBy = 'name ASC';
+                                    break;
+                                case 'name_desc':
+                                    $orderBy = 'name DESC';
+                                    break;
+                                // Add cases for other sorting options if needed
+                                default:
+                                    $orderBy = 'name ASC'; // Default sorting by name ascending
+                                    break;
+                            }
+                            
+                            // Update SQL query with sorting condition
+                            $role = "user";
+                            $sql = "SELECT * FROM Users WHERE role='$role' ORDER BY $orderBy";
+                        } else {
+                            // Default query without sorting
+                            $role = "user";
+                            $sql = "SELECT * FROM Users WHERE role='$role'";
+                        }
+
                         $result = mysqli_query($conn, $sql);
+                        if ($result) {
+                            if (mysqli_num_rows($result) > 0) {
+                                $data = array();
+                                while ($row = mysqli_fetch_assoc($result)) {
+                                    $data[] = $row;
+                                }
+                                $itemsPerPage = 3; // You can adjust this value based on your design
+                                $totalItems = count($data);
+                                $totalPages = ceil($totalItems / $itemsPerPage);
+                                $currentPage = isset($_GET['user_page']) ? $_GET['user_page'] : 1;
 
-                        if (mysqli_num_rows($result) > 0) {
-                            $data = mysqli_fetch_all($result, MYSQLI_ASSOC);
-                            $itemsPerPage = 3; // You can adjust this value based on your design
-                            $totalItems = count($data);
-                            $totalPages = ceil($totalItems / $itemsPerPage);
-                            $currentPage = isset($_GET['user_page']) ? $_GET['user_page'] : 1;
+                                // Display data for the current page
+                                $startIndex = ($currentPage - 1) * $itemsPerPage;
+                                $endIndex = min($startIndex + $itemsPerPage, $totalItems);
 
-                            // Display data for the current page
-                            $startIndex = ($currentPage - 1) * $itemsPerPage;
-                            $endIndex = min($startIndex + $itemsPerPage, $totalItems);
-
-                            for ($i = $startIndex; $i < $endIndex; $i++) {
-                                $user = $data[$i];
+                                echo '<div class="card-container">';
+                                for ($i = $startIndex; $i < $endIndex; $i++) {
+                                    $user = $data[$i];
+                                    // Your card display code goes here
+                                    // ... (existing card display code)
+                            
                     ?>
                     <div class="card profile-card" style="padding-right: 1%; padding-left: 1%;">
                     <div style="width: 115px; height: 115px; overflow: hidden; border-radius: 50%; position: relative; margin: 0 auto; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
@@ -782,6 +834,11 @@ $uname = $_SESSION['user_name'];
                     }
                     ?>
                 </div>
+                <?php
+                    } else {
+                        echo "No users found";
+                    }
+                ?>
             </div>
         </div>
         <!-- End of Borrowing Content -->
